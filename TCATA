@@ -1,0 +1,72 @@
+
+## ASCACATA on TCATA data for 3 whiskies 
+## 1. look at the whole dataset
+## 2. remove oulier panellist (P16)
+## 3. split off the data for each sample to get cumulative contribution of attribute loadings over time for each whisky   
+
+library(ASCATCATA)
+library(tempR)
+library(tidyverse)
+library(readxl)
+
+## Data wrangling 
+TCATA$Sample[TCATA$Sample=="W1"] <- "Sherried"
+TCATA$Sample[TCATA$Sample=="W2"] <- "Blended"
+TCATA$Sample[TCATA$Sample=="W3"] <- "Peated"
+
+Data <- (TCATA)
+Data <- subset(Data, Panellist != "P16")## We identify this panellist as an outlier and remove them from the dataset
+
+long<- Data %>% gather(time, CATA, 4:139) %>%
+  mutate(Sample = as.factor(Sample), Attribute = as.factor(Attribute), Panellist = as.factor(Panellist),
+         time = as.numeric(str_extract(time, "\\d+")))
+long
+
+
+
+## run ASCACATA
+
+ASCA <- ASCATCATA::asca_tcata(CATA ~ Sample+Panellist, data = long, timecol = "time", attributes = "Attribute")
+ASCATCATA::plot_ASCA(ASCA, object = 2)
+ASCATCATA::plot_ASCA(ASCA, object = 1)
+
+TimeScore <- ASCATCATA::asca_tcata(CATA ~ Sample+Panellist, data = long, timecol = "time", attributes = "Attribute", loadings.time.structure = "short")
+plot_ASCA(TimeScore, object = 1)
+plot_ASCA(TimeScore, object = 2)
+
+plot_time_loadings(ASCA, ref = "factors") # Each line has a different color for each factor included in the model, and the values are divided into faceting panels according to the sensory attributes of the experiment
+
+plot_time_loadings(ASCA, ref = "attributes")
+
+
+## split up samples and run cumulative loadings 
+
+## Sherried whisky 
+Data %>% filter(Sample == "Sherried") -> LS
+LS<- LS[,-1]
+LongS <- LS %>% gather(time, CATA, 3:138) %>%
+  mutate(Attribute = as.factor(Attribute), Panellist = as.factor(Panellist),
+         time = as.numeric(str_extract(time, "\\d+")))
+ASCA_S <- ASCATCATA::asca_tcata(CATA ~ Panellist, data = LongS, timecol = "time", attributes = "Attribute")
+plot_time_loadings(ASCA_S, ref = "attributes")
+
+
+## Blended whisky 
+Data %>% filter(Sample == "Blended") -> LB
+LB<- LB[,-1]
+LongB <- LB %>% gather(time, CATA, 3:138) %>%
+  mutate(Attribute = as.factor(Attribute), Panellist = as.factor(Panellist),
+         time = as.numeric(str_extract(time, "\\d+")))
+ASCA_B <- ASCATCATA::asca_tcata(CATA ~ Panellist, data = LongB, timecol = "time", attributes = "Attribute")
+plot_time_loadings(ASCA_B, ref = "attributes")
+
+
+## Peated whisky 
+Data %>% filter(Sample == "Peated") -> LP
+LP<- LP[,-1]
+LongP <- LP %>% gather(time, CATA, 3:138) %>%
+  mutate(Attribute = as.factor(Attribute), Panellist = as.factor(Panellist),
+         time = as.numeric(str_extract(time, "\\d+")))
+ASCA_P <- ASCATCATA::asca_tcata(CATA ~ Panellist, data = LongP, timecol = "time", attributes = "Attribute")
+plot_time_loadings(ASCA_P, ref = "attributes")
+
